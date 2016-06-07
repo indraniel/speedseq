@@ -1845,7 +1845,7 @@ global options:
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
             $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \\
                 | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname \\
+            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt \\
                 | $SAMBAMBA view -S -f bam -l 0 /dev/stdin \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin"
 	fi
@@ -1854,7 +1854,7 @@ global options:
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
             $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
                 | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname \
+            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt \
                 | $SAMBAMBA view -S -f bam -l 0 /dev/stdin \
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin
             " | $PARALLEL -j 3
