@@ -1751,6 +1751,21 @@ global options:
 	echo parallel is $PARALLEL
         echo -e "Error: parallel executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
         exit 1
+    elif [[ ! -f "$PICARD" ]]
+    then
+	realign_usage
+        echo -e "Error: picard jar file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$JAVA" ]]
+    then
+	realign_usage
+        echo -e "Error: java executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$SAMTOOLS" ]]
+    then
+	realign_usage
+        echo -e "Error: samtools executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
     fi
 
     # check for required python modules (pysam, numpy, scipy, etc)
@@ -1792,6 +1807,11 @@ global options:
 	mkfifo $TEMP_DIR/fq_pipe
     fi
     FQ="$TEMP_DIR/fq_pipe"
+    ALIGNED="$TEMP_DIR/aligned_pipe"
+    if [[ ! -e $ALIGNED ]]
+    then
+    mkfifo $ALIGNED
+    fi
 
     # make a sloppy "merged" header.
     $PYTHON $BAMCLEANHEADER $BAM_STRING > $TEMP_DIR/header.txt
@@ -1823,85 +1843,54 @@ global options:
 	    then
 	        echo -e "
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
-            $BWA mem -t $THREADS -C -p $INS_DIST $RG_FMT $REF $FQ \\
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG \\
-                | $SAMBLASTER $INCLUDE_DUPS --addMateTags --maxSplitCount $MAX_SPLIT_COUNT --minNonOverlap $MIN_NON_OVERLAP --splitterFile $TEMP_DIR/spl_pipe --discordantFile $TEMP_DIR/disc_pipe \\
+            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \\
+                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG > $ALIGNED
+            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname \\
                 | $SAMBAMBA view -S -f bam -l 0 /dev/stdin \\
-                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin
-	    gawk '{ if (\$0~\"^@\") { print; next } else { \$10=\"*\"; \$11=\"*\"; print } }' OFS=\"\\t\" $TEMP_DIR/spl_pipe \\
-		| $SAMBAMBA view -S -f bam -l 0 /dev/stdin \\
-                | $SAMBAMBA sort -t 4 -m 1G --tmpdir=$TEMP_DIR/spl -o $TEMP_DIR/$OUTBASE.$(($i+1)).splitters.bam /dev/stdin
-	    gawk '{ if (\$0~\"^@\") { print; next } else { \$10=\"*\"; \$11=\"*\"; print } }' OFS=\"\\t\" $TEMP_DIR/disc_pipe \\
-		| $SAMBAMBA view -S -f bam -l 0 /dev/stdin \\
-                | $SAMBAMBA sort -t 4 -m 1G --tmpdir=$TEMP_DIR/disc -o $TEMP_DIR/$OUTBASE.$(($i+1)).discordants.bam /dev/stdin"
+                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin"
 	fi
 
 	echo -e "
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
-            $BWA mem -t $THREADS -C -p $INS_DIST $RG_FMT $REF $FQ \
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG \
-                | $SAMBLASTER $INCLUDE_DUPS --addMateTags --maxSplitCount $MAX_SPLIT_COUNT --minNonOverlap $MIN_NON_OVERLAP --splitterFile $TEMP_DIR/spl_pipe --discordantFile $TEMP_DIR/disc_pipe \
+            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
+                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG > $ALIGNED
+            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname \
                 | $SAMBAMBA view -S -f bam -l 0 /dev/stdin \
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin
-	    gawk '{ if (\$0~\"^@\") { print; next } else { \$10=\"*\"; \$11=\"*\"; print } }' OFS=\"\\t\" $TEMP_DIR/spl_pipe \
-		| $SAMBAMBA view -S -f bam -l 0 /dev/stdin \
-                | $SAMBAMBA sort -t 4 -m 1G --tmpdir=$TEMP_DIR/spl -o $TEMP_DIR/$OUTBASE.$(($i+1)).splitters.bam /dev/stdin
-	    gawk '{ if (\$0~\"^@\") { print; next } else { \$10=\"*\"; \$11=\"*\"; print } }' OFS=\"\\t\" $TEMP_DIR/disc_pipe \
-		| $SAMBAMBA view -S -f bam -l 0 /dev/stdin \
-                | $SAMBAMBA sort -t 4 -m 1G --tmpdir=$TEMP_DIR/disc -o $TEMP_DIR/$OUTBASE.$(($i+1)).discordants.bam /dev/stdin
-            " | $PARALLEL -j 4
+            " | $PARALLEL -j 3
     done
 
     # if only 1 library, then rename files and index
     if [[ ${#REALIGN_RG_LIST[@]} -eq 1 ]]
     then
 	mv $TEMP_DIR/$OUTBASE.1.bam $OUTPUT.bam
-	mv $TEMP_DIR/$OUTBASE.1.discordants.bam $OUTPUT.discordants.bam
-	mv $TEMP_DIR/$OUTBASE.1.splitters.bam $OUTPUT.splitters.bam
 
-	echo "
 	$SAMBAMBA index $OUTPUT.bam
-	$SAMBAMBA index $OUTPUT.discordants.bam
-	$SAMBAMBA index $OUTPUT.splitters.bam
-	" | $PARALLEL -j 3
 
     else
 	MERGE_FULL=""
-	MERGE_DISCORDANTS=""
-	MERGE_SPLITTERS=""
 	for i in $( seq 0 $(( ${#REALIGN_RG_LIST[@]}-1 )) )
 	do
 	    MERGE_FULL="$MERGE_FULL $TEMP_DIR/$OUTBASE.$(($i+1)).bam"
-	    MERGE_DISCORDANTS="$MERGE_DISCORDANTS $TEMP_DIR/$OUTBASE.$(($i+1)).discordants.bam"
-	    MERGE_SPLITTERS="$MERGE_SPLITTERS $TEMP_DIR/$OUTBASE.$(($i+1)).splitters.bam"
 	done
 	
 	if [[ $VERBOSE -eq 1 ]]
 	then
             echo "
             $SAMBAMBA merge -t $THREADS $OUTPUT.bam $MERGE_FULL
-            $SAMBAMBA merge -t $THREADS $OUTPUT.discordants.bam $MERGE_DISCORDANTS
-            $SAMBAMBA merge -t $THREADS $OUTPUT.splitters.bam $MERGE_SPLITTERS
-            rm $MERGE_FULL $MERGE_DISCORDANTS $MERGE_SPLITTERS"
+            rm $MERGE_FULL"
 	fi
 	$SAMBAMBA merge -t $THREADS $OUTPUT.bam $MERGE_FULL
-	$SAMBAMBA merge -t $THREADS $OUTPUT.discordants.bam $MERGE_DISCORDANTS
-	$SAMBAMBA merge -t $THREADS $OUTPUT.splitters.bam $MERGE_SPLITTERS
-	rm $MERGE_FULL $MERGE_DISCORDANTS $MERGE_SPLITTERS
+	rm $MERGE_FULL
 	
         # index the files
 	if [[ $VERBOSE -eq 1 ]]
 	then
             echo -e "
             $SAMBAMBA index $OUTPUT.bam
-            $SAMBAMBA index $OUTPUT.discordants.bam
-            $SAMBAMBA index $OUTPUT.splitters.bam"
+            "
 	fi
-	echo "
         $SAMBAMBA index $OUTPUT.bam
-        $SAMBAMBA index $OUTPUT.discordants.bam
-        $SAMBAMBA index $OUTPUT.splitters.bam
-        " | $PARALLEL -j 3
     fi
 
     # clean up
