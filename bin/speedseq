@@ -1766,6 +1766,20 @@ global options:
 	realign_usage
         echo -e "Error: samtools executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
         exit 1
+    elif [[ ! -f "$GATK" ]]
+    then
+	realign_usage
+        echo -e "Error: gatk executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$JAVA1_7" ]]
+    then
+	realign_usage
+        echo -e "Error: java 1.7 executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+    elif [[ ! -f "$DBSNP" ]]
+    then
+	realign_usage
+        echo -e "Error: dbsnp file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
     fi
 
     # check for required python modules (pysam, numpy, scipy, etc)
@@ -1782,36 +1796,18 @@ global options:
     if [[ $VERBOSE -eq 1 ]]
     then
 	echo "
-        mkdir -p $TEMP_DIR/full $TEMP_DIR/spl $TEMP_DIR/disc
-        mkfifo $TEMP_DIR/spl_pipe $TEMP_DIR/disc_pipe"
+        mkdir -p $TEMP_DIR/full
+        mkfifo $TEMP_DIR/fq_pipe"
     fi
-
-    if [[ $VERBOSE -eq 1 ]]
-    then
-	echo "
-        mkdir -p $TEMP_DIR $TEMP_DIR/full $TEMP_DIR/spl $TEMP_DIR/disc
-        mkdir -p $TEMP_DIR/full $TEMP_DIR/spl $TEMP_DIR/disc
-        mkfifo $TEMP_DIR/spl_pipe $TEMP_DIR/disc_pipe $TEMP_DIR/fq_pipe"
-    fi
-    mkdir -p $TEMP_DIR $TEMP_DIR/full $TEMP_DIR/spl $TEMP_DIR/disc
-    if [[ ! -e $TEMP_DIR/spl_pipe ]]
-    then
-	mkfifo $TEMP_DIR/spl_pipe
-    fi
-    if [[ ! -e $TEMP_DIR/disc_pipe ]]
-    then
-	mkfifo $TEMP_DIR/disc_pipe
-    fi
+    mkdir -p $TEMP_DIR $TEMP_DIR/full
     if [[ ! -e $TEMP_DIR/fq_pipe ]]
     then
 	mkfifo $TEMP_DIR/fq_pipe
     fi
     FQ="$TEMP_DIR/fq_pipe"
-    ALIGNED="$TEMP_DIR/aligned_pipe"
-    if [[ ! -e $ALIGNED ]]
-    then
-    mkfifo $ALIGNED
-    fi
+    ALIGNED="$TEMP_DIR/aligned.bam"
+    BQSR="$TEMP_DIR/bqsr.table"
+    DUPS="$TEMP_DIR/dups.bam"
 
     # make a sloppy "merged" header.
     $PYTHON $BAMCLEANHEADER $BAM_STRING > $TEMP_DIR/header.txt
@@ -1844,53 +1840,62 @@ global options:
 	        echo -e "
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
             $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \\
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt \\
-                | $SAMBAMBA view -S -f bam -l 0 /dev/stdin \\
-                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin"
+                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
+            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
+                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            rm $ALIGNED
+            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+            $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
+                | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
+            rm $DUPS
+                "
 	fi
 
 	echo -e "
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
             $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -r $REALIGN_RG > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt \
-                | $SAMBAMBA view -S -f bam -l 0 /dev/stdin \
-                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $TEMP_DIR/$OUTBASE.$(($i+1)).bam /dev/stdin
-            " | $PARALLEL -j 3
+                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
+            " | $PARALLEL -j 2
+    $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
+        | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+    rm $ALIGNED
+    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+    $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
+        | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
+        rm $DUPS
     done
 
     # if only 1 library, then rename files and index
     if [[ ${#REALIGN_RG_LIST[@]} -eq 1 ]]
     then
-	mv $TEMP_DIR/$OUTBASE.1.bam $OUTPUT.bam
+	mv $TEMP_DIR/$OUTBASE.1.cram $OUTPUT.cram
 
-	$SAMBAMBA index $OUTPUT.bam
+	$SAMBAMBA index -C $OUTPUT.cram
 
     else
 	MERGE_FULL=""
 	for i in $( seq 0 $(( ${#REALIGN_RG_LIST[@]}-1 )) )
 	do
-	    MERGE_FULL="$MERGE_FULL $TEMP_DIR/$OUTBASE.$(($i+1)).bam"
+	    MERGE_FULL="$MERGE_FULL $TEMP_DIR/$OUTBASE.$(($i+1)).cram"
 	done
 	
 	if [[ $VERBOSE -eq 1 ]]
 	then
             echo "
-            $SAMBAMBA merge -t $THREADS $OUTPUT.bam $MERGE_FULL
+            $SAMTOOLS merge -t $THREADS $OUTPUT.cram $MERGE_FULL
             rm $MERGE_FULL"
 	fi
-	$SAMBAMBA merge -t $THREADS $OUTPUT.bam $MERGE_FULL
+	$SAMTOOLS merge -t $THREADS $OUTPUT.cram $MERGE_FULL
 	rm $MERGE_FULL
 	
         # index the files
 	if [[ $VERBOSE -eq 1 ]]
 	then
             echo -e "
-            $SAMBAMBA index $OUTPUT.bam
+            $SAMBAMBA index -C $OUTPUT.cram
             "
 	fi
-        $SAMBAMBA index $OUTPUT.bam
+        $SAMBAMBA index -C $OUTPUT.cram
     fi
 
     # clean up
