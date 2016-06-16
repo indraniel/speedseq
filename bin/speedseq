@@ -190,6 +190,7 @@ global options:
     SPEEDSEQ_DIR=`dirname $0`
     CONFIG="$SPEEDSEQ_DIR/speedseq.config"
     INTERLEAVED=0
+    IGNORE_RG=0
     RG_FMT=""
     OUTPUT=""
     INCLUDE_DUPS="--excludeDups"
@@ -201,7 +202,7 @@ global options:
     INS_DIST=""
     SORT_MEM=20 # amount of memory for sorting, in gigabytes
 
-    while getopts ":hw:o:R:pic:m:M:t:T:I:vK:" OPTION
+    while getopts ":hw:o:RCpic:m:M:t:T:I:vK:" OPTION
     do
 	case "${OPTION}" in
 	    h)
@@ -298,9 +299,8 @@ global options:
 
 
     OUTBASE=`basename "$OUTPUT"`
-
     # Check for readgroup flag
-    if [[ $IGNORE_RG == 1 ]]
+    if [[ "$IGNORE_RG" -eq 1 ]]
     then
         RG_FMT=""
         #Assume fastq contains RG tag
