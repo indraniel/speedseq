@@ -439,7 +439,7 @@ global options:
     if [[ $VERBOSE -eq 1 ]]
     then
 	echo -e "
-        $SAMBAMBA index -C $OUTPUT.cram
+        $SAMBAMBA index -C $OUTPUT.cram"
     fi
 
     $SAMBAMBA index -C $OUTPUT.cram
