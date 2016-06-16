@@ -364,21 +364,16 @@ global options:
     if [[ $VERBOSE -eq 1 ]]
     then
 	echo "
-        mkdir -p $TEMP_DIR/full $TEMP_DIR/spl $TEMP_DIR/disc
-        mkfifo $TEMP_DIR/spl_pipe $TEMP_DIR/disc_pipe"
+        mkdir -p $TEMP_DIR/full
+        "
     fi
 
     # create temp files
-    mkdir -p $TEMP_DIR/full $TEMP_DIR/spl $TEMP_DIR/disc
-    if [[ ! -e $TEMP_DIR/spl_pipe ]]
-    then
-	mkfifo $TEMP_DIR/spl_pipe
-    fi
-    if [[ ! -e $TEMP_DIR/disc_pipe ]]
-    then
-	mkfifo $TEMP_DIR/disc_pipe
-    fi
+    mkdir -p $TEMP_DIR/full
 
+    ALIGNED="$TEMP_DIR/aligned.bam"
+    BQSR="$TEMP_DIR/bqsr.table"
+    DUPS="$TEMP_DIR/dups.bam"
     # alignment command
     if [[ "$INTERLEAVED" -eq 1 ]]
     then
