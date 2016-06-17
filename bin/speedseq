@@ -380,8 +380,7 @@ global options:
 	if [[ $VERBOSE -eq 1 ]]
 	then
         echo -e "
-            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \\
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
+            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ > $ALIGNED
             $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $ALIGNED
@@ -391,10 +390,7 @@ global options:
             rm $DUPS"
 	fi
 
-        echo "
-            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
-            " | $PARALLEL -j 2
+    $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ > $ALIGNED
     $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $ALIGNED
@@ -406,8 +402,7 @@ global options:
 	if [[ $VERBOSE -eq 1 ]]
 	then
         echo -e "
-            $BWA mem -K 10000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 \\
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
+            $BWA mem -K 10000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 > $ALIGNED
             $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $ALIGNED
@@ -417,10 +412,7 @@ global options:
             rm $DUPS"
 	fi
 
-        echo "
-            $BWA mem -K 10000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 \
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
-            " | $PARALLEL -j 2
+    $BWA mem -K 10000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 > $ALIGNED
     $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $ALIGNED
