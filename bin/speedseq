@@ -302,15 +302,15 @@ global options:
     # Check for readgroup flag
     if [[ "$IGNORE_RG" -eq 1 ]]
     then
-        RG_FMT=""
         #Assume fastq contains RG tag
-    else 
-        if [[ -z $RG ]]
-        then
+        RG_FMT=""
+        HEADER="$RG"
+    fi
+    if [[ -z $RG ]]
+    then
 	    align_usage
 	    echo -e "Error: no readgroup found. Please set a readgroup with the -R flag.\n"
 	    exit 1
-        fi
     fi
 
     # Check that SORT_MEM > 2
@@ -380,20 +380,38 @@ global options:
 	if [[ $VERBOSE -eq 1 ]]
 	then
         echo -e "
-            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
-                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            $BWA mem -K 100000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ"
+            if [[ -z "$HEADER" ]]
+            then
+                echo -e " | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED"
+            else
+                echo -e "
+                | $PYTHON $BAMHEADRG -d $HEADER -S | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED"
+            fi
+        echo -e "
+            $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $SORTED $ALIGNED
             rm $ALIGNED
+            $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
+                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            rm $SORTED
             $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
                 | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
             rm $DUPS"
 	fi
 
-    $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ > $ALIGNED
-    $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
-        | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+    if [[ -z "$HEADER" ]]
+    then
+        $BWA mem -K 100000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED
+    else
+        $BWA mem -K 100000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
+        | $PYTHON $BAMHEADRG -d $HEADER -S | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED
+    fi
+    $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G -n --tmpdir=$TEMP_DIR/full -o $SORTED $ALIGNED
     rm $ALIGNED
+    $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
+        | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+    rm $SORTED
     $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
         | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
@@ -402,20 +420,37 @@ global options:
 	if [[ $VERBOSE -eq 1 ]]
 	then
         echo -e "
-            $BWA mem -K 10000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
-                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            $BWA mem -K 100000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 \\"
+        if [[ -z "$HEADER" ]]
+        then
+            echo -e " | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED"
+        else
+            echo -e "| $PYTHON $BAMHEADRG -d $HEADER -S | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED"
+        fi
+        echo -e "
+            $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G -n --tmpdir=$TEMP_DIR/full -o $SORTED $ALIGNED
             rm $ALIGNED
+            $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
+                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            rm $SORTED
             $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
                 | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
             rm $DUPS"
 	fi
 
-    $BWA mem -K 10000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 > $ALIGNED
-    $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
-        | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+    if [[ -z "$HEADER" ]]
+    then
+        $BWA mem -K 100000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED
+    else 
+        $BWA mem -K 100000000 -t $THREADS -Y -C $INS_DIST $RG_FMT $REF $FQ1 $FQ2 \
+            | $PYTHON $BAMHEADRG -d $HEADER -S | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED
+    fi
+    $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G -n --tmpdir=$TEMP_DIR/full -o $SORTED $ALIGNED
     rm $ALIGNED
+    $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
+        | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+    rm $SORTED
     $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
         | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
@@ -1789,6 +1824,7 @@ global options:
     fi
     FQ="$TEMP_DIR/fq_pipe"
     ALIGNED="$TEMP_DIR/aligned.bam"
+    SORTED="$TEMP_DIR/sorted.bam"
     BQSR="$TEMP_DIR/bqsr.table"
     DUPS="$TEMP_DIR/dups.bam"
 
@@ -1822,11 +1858,13 @@ global options:
 	    then
 	        echo -e "
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
-            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \\
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
-            $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
-                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            $BWA mem -K 100000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ\\
+                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED
+            $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G -n --tmpdir=$TEMP_DIR/full -o $SORTED $ALIGNED
             rm $ALIGNED
+            $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
+                | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
+            rm $SORTED
             $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
                 | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
@@ -1836,12 +1874,14 @@ global options:
 
 	echo -e "
             $PYTHON $BAMTOFASTQ -r $REALIGN_RG $RENAME $BAM_STRING | $MBUFFER -q -m 1G > $FQ
-            $BWA mem -K 10000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
-                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG > $ALIGNED
+            $BWA mem -K 100000000 -t $THREADS -Y -C -p $INS_DIST $RG_FMT $REF $FQ \
+                | $PYTHON $BAMHEADRG -d $TEMP_DIR/header.txt -S -r $REALIGN_RG | $SAMTOOLS view -b -S /dev/stdin > $ALIGNED
             " | $PARALLEL -j 2
-    $JAVA -jar $PICARD MarkDuplicates I=$ALIGNED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
+            $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G -n --tmpdir=$TEMP_DIR/full -o $SORTED $ALIGNED
+            rm $ALIGNED
+    $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
-    rm $ALIGNED
+    rm $SORTED
     $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
         | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
