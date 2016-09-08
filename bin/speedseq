@@ -202,7 +202,7 @@ global options:
     INS_DIST=""
     SORT_MEM=20 # amount of memory for sorting, in gigabytes
 
-    while getopts ":hw:o:RCpic:m:M:t:T:I:vK:" OPTION
+    while getopts ":hw:o:R:Cpic:m:M:t:T:I:vK:" OPTION
     do
 	case "${OPTION}" in
 	    h)
