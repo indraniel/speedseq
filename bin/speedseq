@@ -431,7 +431,7 @@ global options:
             rm $SORTED
             $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
-                | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
+                | $SAMTOOLS view -C -T $REF - > $OUTPUT.cram
             rm $DUPS"
 	fi
 
@@ -488,7 +488,7 @@ global options:
     rm $SORTED
     $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
-        | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
+        | $SAMTOOLS view -C -T $REF - > $OUTPUT.cram
         rm $DUPS
     fi
     
