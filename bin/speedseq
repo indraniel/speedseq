@@ -429,7 +429,7 @@ global options:
             $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $SORTED
-            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
                 | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
             rm $DUPS"
@@ -486,7 +486,7 @@ global options:
     $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $SORTED
-    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
         | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
         rm $DUPS
@@ -1905,7 +1905,7 @@ global options:
             $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $SORTED
-            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \\
                 | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
             rm $DUPS
@@ -1922,7 +1922,7 @@ global options:
     $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $SORTED
-    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 \
         | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
         rm $DUPS
