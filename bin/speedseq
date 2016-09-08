@@ -344,6 +344,40 @@ global options:
 	align_usage
         echo -e "Error: parallel executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
         exit 1
+    elif [[ ! -f "$PICARD" ]]
+    then
+	align_usage
+        echo -e "Error: picard jar file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$JAVA" ]]
+    then
+	align_usage
+        echo -e "Error: java executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$SAMTOOLS" ]]
+    then
+	align_usage
+        echo -e "Error: samtools executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$GATK" ]]
+    then
+	align_usage
+        echo -e "Error: gatk executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$JAVA1_7" ]]
+    then
+	align_usage
+        echo -e "Error: java 1.7 executable not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+    elif [[ ! -f "$DBSNP" ]]
+    then
+	align_usage
+        echo -e "Error: dbsnp file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$MILLS" ]]
+    then
+	align_usage
+        echo -e "Error: mills gold indels file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
     fi
 
     # Check for BWA index of the reference
@@ -372,6 +406,7 @@ global options:
     mkdir -p $TEMP_DIR/full
 
     ALIGNED="$TEMP_DIR/aligned.bam"
+    SORTED="$TEMP_DIR/sorted.bam"
     BQSR="$TEMP_DIR/bqsr.table"
     DUPS="$TEMP_DIR/dups.bam"
     # alignment command
@@ -1797,6 +1832,11 @@ global options:
     then
 	realign_usage
         echo -e "Error: dbsnp file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
+        exit 1
+    elif [[ ! -f "$MILLS" ]]
+    then
+	realign_usage
+        echo -e "Error: mills gold indels file not found. Please set path in $SPEEDSEQ_DIR/speedseq.config file\n"
         exit 1
     fi
 
