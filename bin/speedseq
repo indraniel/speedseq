@@ -430,7 +430,7 @@ global options:
             $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $SORTED
-            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4 -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 --disable_indel_quals\\
                 | $SAMTOOLS view -C -T $REF - > $OUTPUT.cram
             rm $DUPS"
@@ -448,7 +448,7 @@ global options:
     $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $SORTED
-    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4 -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 --disable_indel_quals\
         | $SAMTOOLS view -C -T $REF - > $OUTPUT.cram
         rm $DUPS
@@ -469,7 +469,7 @@ global options:
             $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $SORTED
-            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4 -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 --disable_indel_quals\\
                 | $SAMTOOLS view -C -T $REF - > $OUTPUT.cram
             rm $DUPS"
@@ -487,7 +487,7 @@ global options:
     $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $SORTED
-    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4 -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 --disable_indel_quals\
         | $SAMTOOLS view -C -T $REF - > $OUTPUT.cram
         rm $DUPS
@@ -1907,7 +1907,7 @@ global options:
             $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \\
                 | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
             rm $SORTED
-            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+            $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4 -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22
             $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 --disable_indel_quals\\
                 | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
             rm $DUPS
@@ -1924,7 +1924,7 @@ global options:
     $JAVA -jar $PICARD MarkDuplicates I=$SORTED O=/dev/stdout ASSUME_SORT_ORDER=queryname METRICS_FILE=$TEMP_DIR/mark_dups_metrics.txt QUIET=true COMPRESSION_LEVEL=0 \
         | $SAMBAMBA sort -t $THREADS -m $((${SORT_MEM}-2))G --tmpdir=$TEMP_DIR/full -o $DUPS /dev/stdin
     rm $SORTED
-    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4
+    $JAVA -jar $GATK -T BaseRecalibrator -R $REF -I $DUPS -o $BQSR -knownSites $DBSNP -knownSites $MILLS -knownSites $KNOWN_INDELS --preserve_qscores_less_than 6 --disable_auto_index_creation_and_locking_when_reading_rods --disable_bam_indexing -dfrac .1 -nct 4 -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22
     $JAVA -jar $GATK -T PrintReads -R $REF -I $DUPS -preserveQ 6 -BQSR $BQSR -SQQ 10 -SQQ 20 -SQQ 30 -SQQ 40 -nct 8 --disable_indel_quals\
         | $SAMTOOLS view -C -T $REF - > $TEMP_DIR/$OUTBASE.$(($i+1)).cram
         rm $DUPS
