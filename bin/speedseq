@@ -1947,10 +1947,10 @@ global options:
 	if [[ $VERBOSE -eq 1 ]]
 	then
             echo "
-            $SAMTOOLS merge -t $THREADS $OUTPUT.cram $MERGE_FULL
+            $SAMTOOLS merge --threads $THREADS $OUTPUT.cram $MERGE_FULL
             rm $MERGE_FULL"
 	fi
-	$SAMTOOLS merge -t $THREADS $OUTPUT.cram $MERGE_FULL
+	$SAMTOOLS merge --threads $THREADS $OUTPUT.cram $MERGE_FULL
 	rm $MERGE_FULL
 	
         # index the files
