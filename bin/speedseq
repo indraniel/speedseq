@@ -1,5 +1,6 @@
 #!/bin/bash -e
 set -x
+set -eo pipefail
 ############################################################
 #  Program: speedseq
 #  Version: 0.1.0
